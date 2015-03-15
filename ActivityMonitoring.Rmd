@@ -1,0 +1,118 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
+
+## Loading and preprocessing the data
+
+The dataset we are analysing contains the measurements of a activity monitoring device.
+The variables included in this dataset are:
+- steps: Number of steps taking in a 5-minute interval (missing values are coded as NA)
+- date: The date on which the measurement was taken in YYYY-MM-DD format
+- interval: Identifier for the 5-minute interval in which measurement was taken
+
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
+
+```{r echo=FALSE, results='hide',message=FALSE}
+library(dplyr)
+activity <- read.csv('activity.csv')
+activity$date <- as.Date(as.character(activity$date))
+```
+
+## What is mean total number of steps taken per day?
+
+We can make a histogram of the total number of steps taken each day by adding all the steps for a specific day.
+
+*Remark: the missing values in the dataset are ignored*
+
+```{r echo=FALSE,message=FALSE}
+steps.per.day <- activity %>% 
+  group_by(date) %>% 
+  summarise(total_steps = sum(steps, na.rm = TRUE))
+steps.per.day
+plot.new()
+hist(steps.per.day$total_steps, main = 'Histogram of total steps')
+```
+
+The mean of the total steps per day is:
+```{r echo=FALSE,message=FALSE}
+mean(steps.per.day$total_steps, na.rm = TRUE)
+```
+
+The median of the total steps per day is:
+```{r echo=FALSE,message=FALSE}
+median(steps.per.day$total_steps, na.rm = TRUE)
+```
+
+## What is the average daily activity pattern?
+
+The time series of the 5-minute interval and the average number of steps taken, averaged across all days can be plotted as follows:
+
+```{r echo=FALSE,message=FALSE}
+intervals.per.day <- activity %>%
+  group_by(interval) %>%
+  summarise(total_steps = sum(steps, na.rm = TRUE) / nrow(steps.per.day))
+plot(intervals.per.day$interval, intervals.per.day$total_steps, type = "l", col = "red", lwd = 10,
+     main = "Intervals per day")
+```
+
+The 5-minute interval that, on average across all the days in the dataset, contains the maximum number of steps is:
+```{r echo=FALSE,message=FALSE}
+intervals.per.day$interval[max(intervals.per.day$total_steps)]
+```
+
+
+## Imputing missing values
+
+The following table shows the number of complete observations (TRUE) versus the total number of missing values in the dataset (FALSE):
+
+```{r echo=FALSE,message=FALSE}
+table(is.na(activity$steps))
+```
+
+We can replace these missing values with 0, as though no steps were taken in the interval:
+```{r echo=FALSE,message=FALSE}
+activity$steps[is.na(activity$steps)] <- 0
+```
+
+Making the histogram again:
+```{r echo=FALSE,message=FALSE}
+steps.per.day <- activity %>% 
+  group_by(date) %>% 
+  summarise(total_steps = sum(steps, na.rm = TRUE))
+steps.per.day
+plot.new()
+hist(steps.per.day$total_steps, main = 'Histogram of total steps')
+```
+
+The mean of the total steps per day is:
+```{r echo=FALSE,message=FALSE}
+mean(steps.per.day$total_steps, na.rm = TRUE)
+```
+
+The median of the total steps per day is:
+```{r echo=FALSE,message=FALSE}
+median(steps.per.day$total_steps, na.rm = TRUE)
+```
+
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+We add a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+```{r echo=FALSE,message=FALSE}
+activity$wknd <- as.factor(ifelse(weekdays( activity$date) %in% c("zaterdag","zondag"), "Weekend", "Weekday")) 
+library(lattice)
+plot.new()
+attach(activity)
+xyplot(steps ~ interval| wknd, 
+           data = activity,
+           type = "l",
+           xlab = "Interval",
+           ylab = "Number of steps",
+           layout=c(1,2))
+```
+
+We can see clearly that in the weekend the steps start later. Very recognisable!
